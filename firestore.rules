@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Função auxiliar: verifica se o usuário está autenticado no Firebase Auth (/admin)
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // 1. Coleção de Produtos (Catálogo de Artefatos de Cimento)
+    // - Leitura pública para qualquer visitante da vitrine
+    // - Criação, edição e exclusão restritas aos administradores autenticados
+    match /produtos/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 2. Coleção de Orçamentos
+    // - Visitantes públicos podem apenas CRIAR novos orçamentos com status inicial "Novo"
+    // - Leitura da lista de orçamentos, alteração de status e exclusão restritas ao /admin
+    match /orcamentos/{quoteId} {
+      allow create: if request.resource.data.status == 'Novo'
+                    && request.resource.data.clienteNome is string
+                    && request.resource.data.clienteTelefone is string
+                    && request.resource.data.itens is list
+                    && request.resource.data.valorTotal is number;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 3. Coleção de Chats (Atendimento em Tempo Real)
+    // - Clientes podem iniciar sua sessão de chat, ler sua própria conversa e enviar mensagens
+    // - Exclusão restrita ao administrador autenticado
+    match /chats/{chatId} {
+      allow read: if true;
+      allow create: if request.resource.data.clienteNome is string
+                    && request.resource.data.clienteTelefone is string
+                    && request.resource.data.mensagens is list;
+      allow update: if request.resource.data.mensagens is list;
+      allow delete: if isAdmin();
+    }
+
+    // 4. Configurações Gerais (Status Online/Offline do Atendimento)
+    match /configuracoes/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

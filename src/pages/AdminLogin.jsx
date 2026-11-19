@@ -50,18 +50,15 @@ export default function AdminLogin() {
         </Link>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-slate-50 p-6 text-slate-800 flex items-center gap-3.5 border-b border-slate-200">
-            <div className="w-12 h-12 rounded-xl bg-orange-600 flex items-center justify-center shadow-xs">
-              <HardHat className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <span className="text-xs uppercase tracking-widest text-orange-600 font-bold block">
-                Painel Administrativo
-              </span>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-800">
-                ConcreForte — PR
-              </h1>
-            </div>
+          <div className="bg-slate-50 p-6 text-slate-800 flex flex-col items-center text-center gap-2 border-b border-slate-200">
+            <img
+              src="/logo-concreforte.png"
+              alt="ConcreForte — Artefatos de Cimento"
+              className="h-20 w-auto object-contain"
+            />
+            <span className="text-[11px] uppercase tracking-widest text-orange-600 font-bold block mt-1">
+              Acesso ao Painel Administrativo
+            </span>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">

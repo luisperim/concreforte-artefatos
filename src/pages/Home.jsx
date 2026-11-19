@@ -94,21 +94,21 @@ export default function Home() {
         />
         <div className="absolute inset-0 bg-white/75 pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 lg:py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            <div className="lg:col-span-7 space-y-4 sm:space-y-6">
+        <div className="relative max-w-[1680px] mx-auto px-4 sm:px-8 lg:px-12 py-7 sm:py-10 lg:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="lg:col-span-7 space-y-4 sm:space-y-5">
               <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-orange-50 border border-orange-200 text-orange-700 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wide">
                 <Factory className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-600 shrink-0" />
                 <span>ConcreForte • Quedas do Iguaçu - PR e Região</span>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-800 tracking-tight leading-[1.15]">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-800 tracking-tight leading-[1.14]">
                 Artefatos de Cimento de{' '}
                 <span className="text-orange-600">Alta Resistência</span> Direto da
                 Fábrica para Sua Obra.
               </h1>
 
-              <p className="text-slate-600 text-sm sm:text-base lg:text-lg max-w-2xl leading-relaxed">
+              <p className="text-slate-600 text-sm sm:text-base lg:text-lg max-w-3xl leading-relaxed">
                 Blocos estruturais, pavers intertravados, manilhas, mourões rurais e
                 lajes sob medida com qualidade garantida.{' '}
                 <strong className="text-slate-800">
@@ -117,11 +117,11 @@ export default function Home() {
                 com entrega ágil, caminhão munck e atendimento próximo.
               </p>
 
-              {/* CTA Buttons - Empilhados 100% no Mobile, Lado a Lado no Desktop */}
-              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3.5 pt-1">
+              {/* CTA Buttons - Empilhados no Mobile, Todos na Mesma Linha no Desktop */}
+              <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 pt-1">
                 <a
                   href="#catalogo"
-                  className="w-full sm:w-auto justify-center bg-orange-600 hover:bg-orange-700 text-white font-bold px-5 py-3.5 rounded-xl text-sm sm:text-base flex items-center gap-2 shadow-sm transition-all"
+                  className="w-full sm:w-auto justify-center bg-orange-600 hover:bg-orange-700 text-white font-bold px-5 py-3 rounded-xl text-sm sm:text-base flex items-center gap-2 shadow-sm transition-all whitespace-nowrap"
                 >
                   <span>Ver Catálogo com Preços</span>
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -131,7 +131,7 @@ export default function Home() {
                   href={getOfficialWhatsAppUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3.5 rounded-xl text-sm sm:text-base flex items-center gap-2 shadow-sm transition-all"
+                  className="w-full sm:w-auto justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl text-sm sm:text-base flex items-center gap-2 shadow-sm transition-all whitespace-nowrap"
                 >
                   <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                   <span>Chamar no WhatsApp</span>
@@ -140,7 +140,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(true)}
-                  className="w-full sm:w-auto justify-center bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold px-5 py-3.5 rounded-xl text-sm sm:text-base flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
+                  className="w-full sm:w-auto justify-center bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold px-5 py-3 rounded-xl text-sm sm:text-base flex items-center gap-2 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
                 >
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 shrink-0" />
                   <span>
@@ -150,8 +150,8 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Trust Highlights - Adaptado para Telas Pequenas e Grandes */}
-              <div className="pt-4 grid grid-cols-3 gap-2 sm:gap-4 border-t border-slate-200 max-w-xl">
+              {/* Trust Highlights */}
+              <div className="pt-3 grid grid-cols-3 gap-2 sm:gap-6 border-t border-slate-200 max-w-2xl">
                 <div>
                   <span className="text-base sm:text-2xl lg:text-3xl font-extrabold text-slate-800 block leading-tight">
                     35–50 <span className="text-orange-600 text-xs sm:text-lg">MPa</span>
@@ -191,8 +191,12 @@ export default function Home() {
                       Orçamento Rápido em 3 Passos
                     </h2>
                   </div>
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 shrink-0">
-                    <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center p-1.5 shrink-0">
+                    <img
+                      src="/logo-icon.png"
+                      alt="ConcreForte"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                 </div>
 
@@ -267,7 +271,7 @@ export default function Home() {
       {/* CATALOG SECTION */}
       <section
         id="catalogo"
-        className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full bg-white"
+        className="py-8 sm:py-12 max-w-[1680px] mx-auto px-4 sm:px-8 lg:px-12 w-full bg-white"
       >
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 sm:mb-8">
           <div>
@@ -443,7 +447,7 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {activeProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -454,9 +458,9 @@ export default function Home() {
       {/* SEÇÃO DE DIFERENCIAIS */}
       <section
         id="diferenciais"
-        className="py-12 sm:py-16 bg-[#F4F6F8] text-slate-800 border-y border-slate-200"
+        className="py-10 sm:py-14 bg-[#F4F6F8] text-slate-800 border-y border-slate-200"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1680px] mx-auto px-4 sm:px-8 lg:px-12">
           <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12 space-y-2">
             <span className="text-xs font-extrabold uppercase tracking-widest text-orange-600">
               ConcreForte — Qualidade & Confiança
@@ -529,7 +533,7 @@ export default function Home() {
       {/* LOCALIZAÇÃO E HORÁRIOS DE ATENDIMENTO */}
       <section
         id="localizacao"
-        className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full bg-white"
+        className="py-10 sm:py-14 max-w-[1680px] mx-auto px-4 sm:px-8 lg:px-12 w-full bg-white"
       >
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12">
           <div className="lg:col-span-6 p-5 sm:p-10 space-y-6 flex flex-col justify-between">
@@ -666,16 +670,23 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-slate-50 text-slate-600 py-10 pb-24 sm:pb-10 border-t border-slate-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-center sm:text-left">
-          <div>
-            <span className="font-extrabold text-slate-800 text-sm block">
-              ConcreForte — Artefatos de Cimento • CNPJ: 15.027.148/0001-97
-            </span>
-            <p className="mt-1 text-slate-600">
-              Quedas do Iguaçu - PR | Atendemos Quedas do Iguaçu e toda a região •
-              WhatsApp: (46) 99911-5137
-            </p>
+      <footer className="bg-slate-50 text-slate-600 py-8 pb-24 sm:pb-8 border-t border-slate-200 mt-auto">
+        <div className="max-w-[1680px] mx-auto px-4 sm:px-8 lg:px-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center gap-3.5">
+            <img
+              src="/logo-horizontal.png"
+              alt="ConcreForte — Artefatos de Cimento"
+              className="h-9 w-auto object-contain"
+            />
+            <div className="sm:border-l sm:border-slate-300 sm:pl-3.5">
+              <span className="font-extrabold text-slate-800 text-xs sm:text-sm block">
+                CNPJ: 15.027.148/0001-97
+              </span>
+              <p className="mt-0.5 text-slate-600">
+                Quedas do Iguaçu - PR | Atendemos Quedas do Iguaçu e toda a região •
+                WhatsApp: (46) 99911-5137
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a href="#inicio" className="hover:text-orange-600 font-medium">

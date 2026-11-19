@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const QuoteCartContext = createContext(null);
 
-const CART_STORAGE_KEY = 'fc_quote_cart_v1';
+const CART_STORAGE_KEY = 'cf_quote_cart_v4';
 
 export function QuoteCartProvider({ children }) {
   const [items, setItems] = useState(() => {

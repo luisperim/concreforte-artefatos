@@ -31,8 +31,8 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
       {/* Top Bar Regional - Compacta no Mobile e Completa no Desktop */}
-      <div className="bg-slate-50 text-slate-600 text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-6 border-b border-slate-200">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+      <div className="bg-slate-50 text-slate-600 text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-8 lg:px-12 border-b border-slate-200">
+        <div className="max-w-[1680px] mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex items-center gap-1 font-semibold text-slate-700 truncate">
               <MapPin className="w-3.5 h-3.5 text-orange-600 shrink-0" />
@@ -70,24 +70,18 @@ export default function Navbar() {
 
       {/* Main Navigation - Perfeitamente Alinhada no Mobile e Desktop */}
       <div className="bg-white text-slate-800">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
-          {/* Brand Logo */}
-          <a href="#inicio" className="flex items-center gap-2 sm:gap-3 group min-w-0 shrink-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-orange-600 flex items-center justify-center shadow-xs group-hover:bg-orange-700 transition-colors shrink-0">
-              <HardHat className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-base sm:text-xl font-extrabold tracking-tight text-slate-800 block leading-none truncate">
-                CONCRE<span className="text-orange-600">FORTE</span>
-              </span>
-              <span className="text-[9px] sm:text-[11px] text-slate-500 uppercase tracking-wider sm:tracking-widest font-semibold block mt-0.5 sm:mt-1 whitespace-nowrap">
-                Artefatos de Cimento
-              </span>
-            </div>
+        <div className="max-w-[1680px] mx-auto px-3 sm:px-8 lg:px-12 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-6">
+          {/* Brand Logo Oficial (Horizontal Transparente) */}
+          <a href="#inicio" className="flex items-center group min-w-0 shrink-0">
+            <img
+              src="/logo-horizontal.png"
+              alt="ConcreForte — Artefatos de Cimento"
+              className="h-8 sm:h-12 md:h-13 w-auto object-contain transition-transform group-hover:scale-[1.01]"
+            />
           </a>
 
           {/* Desktop Links */}
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-slate-700">
+          <nav className="hidden lg:flex items-center gap-8 xl:gap-10 text-sm md:text-[15px] font-semibold text-slate-700">
             <a
               href="#inicio"
               className="hover:text-orange-600 transition-colors py-1 whitespace-nowrap"

@@ -350,19 +350,16 @@ export default function AdminDashboard() {
     >
       {/* Top Admin Header - Tema Claro */}
       <header className="bg-white text-slate-800 border-b border-slate-200 sticky top-0 z-30 shadow-2xs shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+        <div className="max-w-[1680px] mx-auto px-4 sm:px-8 lg:px-12 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-orange-600 flex items-center justify-center font-bold shadow-xs shrink-0">
-              <HardHat className="w-5 h-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <span className="font-extrabold tracking-tight text-slate-800 text-sm sm:text-base block leading-none truncate">
-                CONCRE<span className="text-orange-600">FORTE</span> • ADMIN
-              </span>
-              <span className="text-[11px] text-slate-500 block mt-0.5 truncate">
-                Quedas do Iguaçu - PR • Gestão Comercial
-              </span>
-            </div>
+            <img
+              src="/logo-horizontal.png"
+              alt="ConcreForte"
+              className="h-7 sm:h-9 w-auto object-contain shrink-0"
+            />
+            <span className="hidden md:inline-block bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md">
+              Painel Admin
+            </span>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -408,7 +405,7 @@ export default function AdminDashboard() {
 
         {/* Navigation Tabs */}
         <div className="bg-slate-50 border-t border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 overflow-x-auto">
+          <div className="max-w-[1680px] mx-auto px-4 sm:px-8 lg:px-12 flex items-center gap-2 overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab('orcamentos')}
@@ -463,7 +460,7 @@ export default function AdminDashboard() {
 
       {/* Main Content Area */}
       <main
-        className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 ${
+        className={`flex-1 max-w-[1680px] w-full mx-auto px-4 sm:px-8 lg:px-12 ${
           activeTab === 'chat'
             ? 'py-3 flex flex-col min-h-0 overflow-hidden'
             : 'py-6'

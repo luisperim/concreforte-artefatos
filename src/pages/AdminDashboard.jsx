@@ -27,6 +27,8 @@ import {
   Sparkles,
   TrendingUp,
   MessageCircle,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -44,6 +46,49 @@ import {
   PRODUCT_CATEGORIES,
   QUOTE_FUNNEL_STATUSES,
 } from '../services/firebase';
+
+let sharedAdminAudioCtx = null;
+
+// Som de notificação nítido (duas notas) para novas mensagens de clientes no /admin
+function playAdminNotificationSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!sharedAdminAudioCtx) {
+      sharedAdminAudioCtx = new AudioCtx();
+    }
+    if (sharedAdminAudioCtx.state === 'suspended') {
+      sharedAdminAudioCtx.resume();
+    }
+    const now = sharedAdminAudioCtx.currentTime;
+
+    // 1ª Nota (Mi 5 - 659.25 Hz)
+    const osc1 = sharedAdminAudioCtx.createOscillator();
+    const gain1 = sharedAdminAudioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.14, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc1.connect(gain1);
+    gain1.connect(sharedAdminAudioCtx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.16);
+
+    // 2ª Nota (Si 5 - 987.77 Hz)
+    const osc2 = sharedAdminAudioCtx.createOscillator();
+    const gain2 = sharedAdminAudioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(987.77, now + 0.14);
+    gain2.gain.setValueAtTime(0.16, now + 0.14);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+    osc2.connect(gain2);
+    gain2.connect(sharedAdminAudioCtx.destination);
+    osc2.start(now + 0.14);
+    osc2.stop(now + 0.42);
+  } catch {
+    // Ignora caso o navegador ainda aguarde o primeiro clique na tela
+  }
+}
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -82,10 +127,18 @@ export default function AdminDashboard() {
   const [copiedPhoneId, setCopiedPhoneId] = useState(null);
   const [expandedQuoteIds, setExpandedQuoteIds] = useState({});
 
-  // Estado Aba Chat: Conversa Selecionada e Mensagem
+  // Estado Aba Chat: Conversa Selecionada, Mensagem e Som de Notificação
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [adminReply, setAdminReply] = useState('');
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const chatEndRef = useRef(null);
+  const soundEnabledRef = useRef(true);
+  const knownClientMsgIdsRef = useRef(new Set());
+  const chatsInitializedRef = useRef(false);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
 
   useEffect(() => {
     const unsubProd = subscribeProducts(setProducts);
@@ -103,10 +156,29 @@ export default function AdminDashboard() {
       setQuotes(sorted);
     });
     const unsubChats = subscribeAllChats((data) => {
-      setChats(data);
-      if (data.length > 0 && !selectedChatId) {
-        setSelectedChatId(data[0].id);
+      let hasNewClientMessage = false;
+
+      data.forEach((chat) => {
+        (chat.mensagens || []).forEach((msg) => {
+          if (msg.remetente === 'cliente' && msg.id) {
+            if (!knownClientMsgIdsRef.current.has(msg.id)) {
+              knownClientMsgIdsRef.current.add(msg.id);
+              if (chatsInitializedRef.current) {
+                hasNewClientMessage = true;
+              }
+            }
+          }
+        });
+      });
+
+      if (!chatsInitializedRef.current) {
+        chatsInitializedRef.current = true;
+      } else if (hasNewClientMessage && soundEnabledRef.current) {
+        playAdminNotificationSound();
       }
+
+      setChats(data);
+      setSelectedChatId((prevId) => prevId || (data.length > 0 ? data[0].id : null));
     });
     const unsubSupport = subscribeSupportStatus(setSupportStatus);
 
@@ -363,6 +435,35 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Botão Som de Notificação (Ativado / Silenciado) */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                if (next) playAdminNotificationSound();
+              }}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                soundEnabled
+                  ? 'bg-orange-50 text-orange-700 border-orange-200'
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+              }`}
+              title={
+                soundEnabled
+                  ? 'Som de notificação ativado (clique para silenciar)'
+                  : 'Som silenciado (clique para ativar)'
+              }
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span className="hidden md:inline">
+                {soundEnabled ? 'Som Ativo' : 'Sem Som'}
+              </span>
+            </button>
+
             {/* Toggle Atendente Online / Offline */}
             <button
               type="button"

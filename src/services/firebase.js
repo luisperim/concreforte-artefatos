@@ -106,11 +106,19 @@ export const INITIAL_CHATS = [];
 // ============================================================================
 const STORAGE_KEYS = {
   PRODUCTS: 'cf_produtos_v4',
-  QUOTES: 'cf_orcamentos_v4',
-  CHATS: 'cf_chats_v4',
+  QUOTES: 'cf_orcamentos_v5',
+  CHATS: 'cf_chats_v5',
   SETTINGS: 'cf_settings_v4',
   AUTH: 'cf_admin_auth_v4',
 };
+
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('cf_orcamentos_v4');
+    localStorage.removeItem('cf_chats_v4');
+    localStorage.removeItem('cf_client_chat_session_v4');
+  } catch {}
+}
 
 const syncChannel =
   typeof window !== 'undefined' && 'BroadcastChannel' in window
@@ -388,6 +396,34 @@ export async function updateQuoteStatus(quoteId, newStatus) {
       );
     } catch (err) {
       console.warn('Erro ao atualizar status no Firestore:', err);
+    }
+  }
+}
+
+export async function deleteQuoteById(quoteId) {
+  const current = getLocalData(STORAGE_KEYS.QUOTES, INITIAL_QUOTES);
+  const updated = current.filter((q) => q.id !== quoteId);
+  setLocalData(STORAGE_KEYS.QUOTES, updated, 'orcamentos');
+
+  if (isFirebaseConfigured && db) {
+    try {
+      await withTimeout(deleteDoc(doc(db, 'orcamentos', quoteId)));
+    } catch (err) {
+      console.warn('Erro ao excluir orcamento no Firestore:', err);
+    }
+  }
+}
+
+export async function deleteChatById(chatId) {
+  const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
+  const updated = current.filter((c) => c.id !== chatId);
+  setLocalData(STORAGE_KEYS.CHATS, updated, 'chats');
+
+  if (isFirebaseConfigured && db) {
+    try {
+      await withTimeout(deleteDoc(doc(db, 'chats', chatId)));
+    } catch (err) {
+      console.warn('Erro ao excluir chat no Firestore:', err);
     }
   }
 }

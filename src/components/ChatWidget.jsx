@@ -21,7 +21,7 @@ import {
   getOfficialWhatsAppUrl,
 } from '../services/firebase';
 
-const CLIENT_SESSION_KEY = 'cf_client_chat_session_v4';
+const CLIENT_SESSION_KEY = 'cf_client_chat_session_v5';
 
 // Som sutil sintetizado via Web Audio API
 function playSubtleNotificationBeep() {

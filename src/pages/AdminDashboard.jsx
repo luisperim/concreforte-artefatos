@@ -38,9 +38,11 @@ import {
   uploadProductImage,
   subscribeQuotes,
   updateQuoteStatus,
+  deleteQuoteById,
   subscribeAllChats,
   sendChatMessage,
   markChatAsRead,
+  deleteChatById,
   subscribeSupportStatus,
   toggleSupportOnlineStatus,
   PRODUCT_CATEGORIES,
@@ -787,6 +789,24 @@ export default function AdminDashboard() {
                               </option>
                             ))}
                           </select>
+
+                          {/* Botão Excluir Orçamento */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Deseja excluir o orçamento de ${clientName}?`
+                                )
+                              ) {
+                                deleteQuoteById(quote.id);
+                              }
+                            }}
+                            className="p-2.5 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 transition-colors cursor-pointer"
+                            title="Excluir orçamento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
 
@@ -1118,17 +1138,36 @@ export default function AdminDashboard() {
                       </p>
                     </div>
 
-                    <a
-                      href={`https://wa.me/55${(
-                        activeChat.clienteTelefone || ''
-                      ).replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg flex items-center gap-1.5 shrink-0"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Abrir no WhatsApp
-                    </a>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={`https://wa.me/55${(
+                          activeChat.clienteTelefone || ''
+                        ).replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Abrir no WhatsApp
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Deseja excluir a conversa de ${activeChat.clienteNome}?`
+                            )
+                          ) {
+                            deleteChatById(activeChat.id);
+                            setSelectedChatId(null);
+                          }
+                        }}
+                        className="p-2 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 transition-colors cursor-pointer"
+                        title="Excluir conversa"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Histórico de Mensagens (Rola apenas aqui dentro) */}

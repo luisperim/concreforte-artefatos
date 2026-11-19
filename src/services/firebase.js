@@ -3,14 +3,13 @@ import {
   getFirestore,
   collection,
   doc,
-  addDoc,
+  getDoc,
   setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
   query,
   orderBy,
-  getDocs,
   serverTimestamp,
 } from 'firebase/firestore';
 import {
@@ -103,7 +102,7 @@ export const INITIAL_QUOTES = [];
 export const INITIAL_CHATS = [];
 
 // ============================================================================
-// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL (FIRESTORE + CACHE/FALLBACK REATIVO)
+// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL (CLOUD FIRESTORE + CACHE REATIVO)
 // ============================================================================
 const STORAGE_KEYS = {
   PRODUCTS: 'cf_produtos_v4',
@@ -153,8 +152,7 @@ function setLocalData(key, data, channelTopic) {
   }
 }
 
-// Helper para executar operação Firestore com timeout rápido sem travar a UI
-function withTimeout(promise, ms = 2500) {
+function withTimeout(promise, ms = 4000) {
   return Promise.race([
     promise,
     new Promise((_, reject) =>
@@ -205,17 +203,15 @@ export function subscribeProducts(callback) {
       unsubFirestore = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setLocalData(STORAGE_KEYS.PRODUCTS, items, 'produtos');
-          }
+          const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setLocalData(STORAGE_KEYS.PRODUCTS, items, 'produtos');
         },
-        () => {
-          // Usa cache local silenciosamente se Firestore ainda não estiver ativo no console
+        (err) => {
+          console.warn('Firestore produtos warning:', err.message);
         }
       );
-    } catch {
-      // Fallback local ativo
+    } catch (err) {
+      console.warn('Erro ao assinar produtos:', err);
     }
   }
 
@@ -243,8 +239,8 @@ export async function saveProduct(productData) {
       try {
         const { id, ...rest } = savedProduct;
         await withTimeout(setDoc(doc(db, 'produtos', id), rest, { merge: true }));
-      } catch {
-        // Persistido localmente caso Firestore não esteja ativo
+      } catch (err) {
+        console.warn('Erro ao atualizar produto no Firestore:', err);
       }
     }
     return savedProduct;
@@ -263,8 +259,8 @@ export async function saveProduct(productData) {
       try {
         const { id, ...rest } = savedProduct;
         await withTimeout(setDoc(doc(db, 'produtos', id), rest));
-      } catch {
-        // Persistido localmente caso Firestore não esteja ativo
+      } catch (err) {
+        console.warn('Erro ao criar produto no Firestore:', err);
       }
     }
     return savedProduct;
@@ -279,8 +275,8 @@ export async function deleteProductById(productId) {
   if (isFirebaseConfigured && db) {
     try {
       await withTimeout(deleteDoc(doc(db, 'produtos', productId)));
-    } catch {
-      // Removido localmente
+    } catch (err) {
+      console.warn('Erro ao excluir produto no Firestore:', err);
     }
   }
 }
@@ -318,15 +314,15 @@ export function subscribeQuotes(callback) {
       unsubFirestore = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setLocalData(STORAGE_KEYS.QUOTES, items, 'orcamentos');
-          }
+          const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setLocalData(STORAGE_KEYS.QUOTES, items, 'orcamentos');
         },
-        () => {}
+        (err) => {
+          console.warn('Firestore orcamentos warning:', err.message);
+        }
       );
-    } catch {
-      // Fallback local
+    } catch (err) {
+      console.warn('Erro ao assinar orcamentos:', err);
     }
   }
 
@@ -367,8 +363,8 @@ export async function createQuoteOrder(quotePayload) {
           timestamp: serverTimestamp(),
         })
       );
-    } catch {
-      // Salvo no cache reativo local
+    } catch (err) {
+      console.warn('Erro ao salvar orcamento no Firestore:', err);
     }
   }
 
@@ -390,8 +386,8 @@ export async function updateQuoteStatus(quoteId, newStatus) {
           atualizadoEm: new Date().toISOString(),
         })
       );
-    } catch {
-      // Atualizado no cache local
+    } catch (err) {
+      console.warn('Erro ao atualizar status no Firestore:', err);
     }
   }
 }
@@ -461,15 +457,15 @@ export function subscribeAllChats(callback) {
       unsubFirestore = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setLocalData(STORAGE_KEYS.CHATS, items, 'chats');
-          }
+          const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setLocalData(STORAGE_KEYS.CHATS, items, 'chats');
         },
-        () => {}
+        (err) => {
+          console.warn('Firestore chats warning:', err.message);
+        }
       );
-    } catch {
-      // Fallback local
+    } catch (err) {
+      console.warn('Erro ao assinar chats:', err);
     }
   }
 
@@ -484,7 +480,7 @@ export function subscribeSingleChat(chatId, callback) {
 
   const notify = (allChats) => {
     const found = allChats.find((c) => c.id === chatId) || null;
-    callback(found);
+    if (found) callback(found);
   };
 
   notify(getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS));
@@ -495,9 +491,31 @@ export function subscribeSingleChat(chatId, callback) {
     try {
       unsubFirestore = onSnapshot(
         doc(db, 'chats', chatId),
-        (snap) => {
+        async (snap) => {
           if (snap.exists()) {
-            callback({ id: snap.id, ...snap.data() });
+            const remoteChat = { id: snap.id, ...snap.data() };
+            // Sincroniza também no cache local
+            const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
+            const existsIdx = current.findIndex((c) => c.id === chatId);
+            if (existsIdx >= 0) {
+              current[existsIdx] = remoteChat;
+            } else {
+              current.unshift(remoteChat);
+            }
+            localStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(current));
+            callback(remoteChat);
+          } else {
+            // Se o chat existe no navegador do cliente mas ainda não subiu para o Firestore, sobe automaticamente!
+            const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
+            const localChat = current.find((c) => c.id === chatId);
+            if (localChat) {
+              const { id, ...rest } = localChat;
+              try {
+                await setDoc(doc(db, 'chats', id), rest, { merge: true });
+              } catch {
+                // Ignora erro de rede temporário
+              }
+            }
           }
         },
         () => {}
@@ -519,14 +537,15 @@ export async function startOrResumeClientChat({ nome, telefone, existingChatId }
 
   if (existingChatId) {
     const exists = current.find((c) => c.id === existingChatId);
-    if (exists) return existingChatId;
-  }
-
-  const foundByPhone = current.find(
-    (c) => c.clienteTelefone.replace(/\D/g, '') === telefone.replace(/\D/g, '')
-  );
-  if (foundByPhone) {
-    return foundByPhone.id;
+    if (exists) {
+      if (isFirebaseConfigured && db) {
+        const { id, ...rest } = exists;
+        try {
+          await withTimeout(setDoc(doc(db, 'chats', id), rest, { merge: true }));
+        } catch {}
+      }
+      return existingChatId;
+    }
   }
 
   const chatId = `chat-${Date.now()}`;
@@ -556,15 +575,18 @@ export async function startOrResumeClientChat({ nome, telefone, existingChatId }
     try {
       const { id, ...rest } = newChat;
       await withTimeout(setDoc(doc(db, 'chats', id), rest));
-    } catch {
-      // Salvo no cache local
+    } catch (err) {
+      console.warn('Erro ao iniciar chat no Firestore:', err);
     }
   }
 
   return chatId;
 }
 
-export async function sendChatMessage(chatId, { remetente, autor, texto }) {
+export async function sendChatMessage(
+  chatId,
+  { remetente, autor, texto, clienteNomeFallback, clienteTelefoneFallback }
+) {
   const now = new Date().toISOString();
   const newMsg = {
     id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -574,31 +596,77 @@ export async function sendChatMessage(chatId, { remetente, autor, texto }) {
     horario: now,
   };
 
+  let baseChat = null;
+
+  // 1. Busca a versão mais recente no Firestore para não perder nenhuma mensagem
+  if (isFirebaseConfigured && db) {
+    try {
+      const snap = await withTimeout(getDoc(doc(db, 'chats', chatId)), 3000);
+      if (snap.exists()) {
+        baseChat = { id: snap.id, ...snap.data() };
+      }
+    } catch {
+      // Continua com cache local
+    }
+  }
+
+  // 2. Se não encontrou no Firestore, busca no cache local ou cria o registro da conversa
   const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
-  let targetUpdatedChat = null;
-
-  const updated = current.map((chat) => {
-    if (chat.id !== chatId) return chat;
-    targetUpdatedChat = {
-      ...chat,
-      mensagens: [...(chat.mensagens || []), newMsg],
-      ultimaMensagem: newMsg.texto,
-      atualizadoEm: now,
-      naoLidasAdmin: remetente === 'cliente' ? (chat.naoLidasAdmin || 0) + 1 : 0,
-      naoLidasCliente: remetente === 'admin' ? (chat.naoLidasCliente || 0) + 1 : 0,
+  if (!baseChat) {
+    baseChat = current.find((c) => c.id === chatId) || {
+      id: chatId,
+      clienteNome: clienteNomeFallback || autor || 'Cliente',
+      clienteTelefone: clienteTelefoneFallback || '',
+      status: 'ativo',
+      naoLidasAdmin: 0,
+      naoLidasCliente: 0,
+      mensagens: [],
     };
-    return targetUpdatedChat;
-  });
+  }
 
-  updated.sort((a, b) => new Date(b.atualizadoEm) - new Date(a.atualizadoEm));
-  setLocalData(STORAGE_KEYS.CHATS, updated, 'chats');
+  const prevMessages = baseChat.mensagens || [];
+  const hadClientMessageBefore = prevMessages.some(
+    (m) => m.remetente === 'cliente'
+  );
 
-  if (isFirebaseConfigured && db && targetUpdatedChat) {
+  const updatedMessages = [...prevMessages, newMsg];
+
+  // Se for a 1ª mensagem enviada pelo cliente, adiciona uma resposta automática instantânea de recepção!
+  if (remetente === 'cliente' && !hadClientMessageBefore) {
+    const autoReplyMsg = {
+      id: `msg-${Date.now() + 1}-auto`,
+      remetente: 'admin',
+      autor: 'Atendimento ConcreForte (Automático)',
+      texto: `Recebemos sua mensagem, ${(baseChat.clienteNome || autor || 'Cliente').split(' ')[0]}! Nossa equipe comercial já foi notificada em tempo real e vai te responder em instantes por aqui ou no seu WhatsApp.`,
+      horario: new Date(Date.now() + 500).toISOString(),
+    };
+    updatedMessages.push(autoReplyMsg);
+  }
+
+  const targetUpdatedChat = {
+    ...baseChat,
+    mensagens: updatedMessages,
+    ultimaMensagem: newMsg.texto,
+    atualizadoEm: now,
+    naoLidasAdmin:
+      remetente === 'cliente' ? (Number(baseChat.naoLidasAdmin) || 0) + 1 : 0,
+    naoLidasCliente:
+      remetente === 'admin' ? (Number(baseChat.naoLidasCliente) || 0) + 1 : 0,
+  };
+
+  // Atualiza lista local
+  const otherChats = current.filter((c) => c.id !== chatId);
+  const updatedList = [targetUpdatedChat, ...otherChats];
+  updatedList.sort((a, b) => new Date(b.atualizadoEm) - new Date(a.atualizadoEm));
+  setLocalData(STORAGE_KEYS.CHATS, updatedList, 'chats');
+
+  // Salva no Cloud Firestore para sincronizar em tempo real com o /admin e celular
+  if (isFirebaseConfigured && db) {
     try {
       const { id, ...rest } = targetUpdatedChat;
       await withTimeout(setDoc(doc(db, 'chats', id), rest, { merge: true }));
-    } catch {
-      // Sincronizado localmente
+    } catch (err) {
+      console.warn('Erro ao enviar mensagem para o Firestore:', err);
     }
   }
 
@@ -608,30 +676,18 @@ export async function sendChatMessage(chatId, { remetente, autor, texto }) {
 export async function markChatAsRead(chatId, viewerRole) {
   if (!chatId) return;
 
+  const field = viewerRole === 'admin' ? 'naoLidasAdmin' : 'naoLidasCliente';
   const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
-  let changed = false;
-  const updated = current.map((chat) => {
-    if (chat.id !== chatId) return chat;
-    if (viewerRole === 'admin' && chat.naoLidasAdmin > 0) {
-      changed = true;
-      return { ...chat, naoLidasAdmin: 0 };
-    }
-    if (viewerRole === 'cliente' && chat.naoLidasCliente > 0) {
-      changed = true;
-      return { ...chat, naoLidasCliente: 0 };
-    }
-    return chat;
-  });
+  const updated = current.map((chat) =>
+    chat.id === chatId ? { ...chat, [field]: 0 } : chat
+  );
+  setLocalData(STORAGE_KEYS.CHATS, updated, 'chats');
 
-  if (changed) {
-    setLocalData(STORAGE_KEYS.CHATS, updated, 'chats');
-    if (isFirebaseConfigured && db) {
-      const field = viewerRole === 'admin' ? 'naoLidasAdmin' : 'naoLidasCliente';
-      try {
-        await withTimeout(updateDoc(doc(db, 'chats', chatId), { [field]: 0 }));
-      } catch {
-        // Ignora se offline
-      }
+  if (isFirebaseConfigured && db) {
+    try {
+      await withTimeout(updateDoc(doc(db, 'chats', chatId), { [field]: 0 }));
+    } catch {
+      // Ignora se documento ainda não sincronizado
     }
   }
 }
@@ -669,7 +725,6 @@ export async function loginAdmin(email, password) {
   const demoPass = import.meta.env.VITE_DEMO_ADMIN_PASS || 'admin123';
   const normalizedEmail = email.trim().toLowerCase();
 
-  // Tenta autenticar via Firebase Auth caso exista usuário cadastrado no Console
   if (isFirebaseConfigured && auth) {
     try {
       const cred = await withTimeout(

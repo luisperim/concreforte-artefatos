@@ -151,6 +151,8 @@ export default function ChatWidget() {
       remetente: 'cliente',
       autor: session.nome,
       texto: text,
+      clienteNomeFallback: session.nome,
+      clienteTelefoneFallback: session.telefone,
     });
   };
 
@@ -160,6 +162,8 @@ export default function ChatWidget() {
       remetente: 'cliente',
       autor: session.nome,
       texto: promptText,
+      clienteNomeFallback: session.nome,
+      clienteTelefoneFallback: session.telefone,
     });
   };
 

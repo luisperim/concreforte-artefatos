@@ -531,6 +531,11 @@ export function subscribeSingleChat(chatId, callback) {
   };
 }
 
+function capitalizeFirstName(fullName) {
+  const raw = (fullName || 'Cliente').trim().split(/\s+/)[0] || 'Cliente';
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+}
+
 export async function startOrResumeClientChat({ nome, telefone, existingChatId }) {
   const now = new Date().toISOString();
   const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
@@ -548,12 +553,13 @@ export async function startOrResumeClientChat({ nome, telefone, existingChatId }
     }
   }
 
+  const firstName = capitalizeFirstName(nome);
   const chatId = `chat-${Date.now()}`;
   const welcomeMsg = {
     id: `msg-${Date.now()}`,
     remetente: 'admin',
     autor: 'Atendimento ConcreForte',
-    texto: `Olá ${nome.split(' ')[0]}! Bem-vindo à ConcreForte — Artefatos de Cimento em Quedas do Iguaçu - PR. Precisa de cotação de blocos, pavers, tubos ou lajes para sua obra?`,
+    texto: `Olá, ${firstName}! Tudo bem? Aqui é da ConcreForte. Como podemos te ajudar na sua obra hoje?`,
     horario: now,
   };
 
@@ -633,11 +639,12 @@ export async function sendChatMessage(
 
   // Se for a 1ª mensagem enviada pelo cliente, adiciona uma resposta automática instantânea de recepção!
   if (remetente === 'cliente' && !hadClientMessageBefore) {
+    const firstName = capitalizeFirstName(baseChat.clienteNome || autor);
     const autoReplyMsg = {
       id: `msg-${Date.now() + 1}-auto`,
       remetente: 'admin',
-      autor: 'Atendimento ConcreForte (Automático)',
-      texto: `Recebemos sua mensagem, ${(baseChat.clienteNome || autor || 'Cliente').split(' ')[0]}! Nossa equipe comercial já foi notificada em tempo real e vai te responder em instantes por aqui ou no seu WhatsApp.`,
+      autor: 'Atendimento ConcreForte',
+      texto: `Recebemos sua mensagem, ${firstName}! Já chamamos um atendente aqui na ConcreForte e vamos te responder agora mesmo.`,
       horario: new Date(Date.now() + 500).toISOString(),
     };
     updatedMessages.push(autoReplyMsg);

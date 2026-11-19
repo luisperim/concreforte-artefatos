@@ -43,7 +43,7 @@ export default function Navbar() {
             </span>
             <span className="hidden lg:flex items-center gap-1.5 text-slate-500 shrink-0">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              Qualidade ABNT NBR 6136 / 9781
+              Material Forte e Direto da Fábrica
             </span>
           </div>
 

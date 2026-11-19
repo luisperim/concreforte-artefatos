@@ -75,7 +75,6 @@ export default function Home() {
   const areaCalculada = Math.max(0, Number(calcComp) * Number(calcAlt));
   const blocosEstimados = Math.ceil(areaCalculada * 12.5 * 1.05); // +5% perda
   const paversEstimados = Math.ceil(areaCalculada * 50 * 1.05);
-  const mouraoEstimado = Math.ceil(Number(calcComp) / 2.5) + 1;
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-800 overflow-x-hidden">
@@ -103,18 +102,14 @@ export default function Home() {
               </div>
 
               <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-800 tracking-tight leading-[1.14]">
-                Artefatos de Cimento de{' '}
-                <span className="text-orange-600">Alta Resistência</span> Direto da
-                Fábrica para Sua Obra.
+                <span className="text-orange-600">Material Forte</span> e Direto da
+                Fábrica para a Sua Obra.
               </h1>
 
               <p className="text-slate-600 text-sm sm:text-base lg:text-lg max-w-3xl leading-relaxed">
-                Blocos estruturais, pavers intertravados, manilhas, mourões rurais e
-                lajes sob medida com qualidade garantida.{' '}
-                <strong className="text-slate-800">
-                  Atendemos Quedas do Iguaçu e toda a região
-                </strong>{' '}
-                com entrega ágil, caminhão munck e atendimento próximo.
+                Blocos, pavers (calçamento), manilhas, mourões e lajes com preço
+                justo e qualidade de verdade. Entregamos rápido em Quedas do Iguaçu
+                e toda a região direto na sua obra.
               </p>
 
               {/* CTA Buttons - Empilhados no Mobile, Todos na Mesma Linha no Desktop */}
@@ -153,27 +148,27 @@ export default function Home() {
               {/* Trust Highlights */}
               <div className="pt-3 grid grid-cols-3 gap-2 sm:gap-6 border-t border-slate-200 max-w-2xl">
                 <div>
-                  <span className="text-base sm:text-2xl lg:text-3xl font-extrabold text-slate-800 block leading-tight">
-                    35–50 <span className="text-orange-600 text-xs sm:text-lg">MPa</span>
+                  <span className="text-base sm:text-xl lg:text-2xl font-extrabold text-slate-800 block leading-tight">
+                    Material Forte
                   </span>
                   <span className="text-[11px] sm:text-xs text-slate-600 block mt-0.5">
-                    Pavers Alta Carga
+                    Aguenta peso de verdade
                   </span>
                 </div>
                 <div>
-                  <span className="text-base sm:text-2xl lg:text-3xl font-extrabold text-slate-800 block leading-tight">
-                    Entrega <span className="text-orange-600 text-xs sm:text-lg">PR</span>
+                  <span className="text-base sm:text-xl lg:text-2xl font-extrabold text-slate-800 block leading-tight">
+                    Entrega Rápida
                   </span>
                   <span className="text-[11px] sm:text-xs text-slate-600 block mt-0.5">
-                    Caminhão Munck
+                    Direto na sua obra
                   </span>
                 </div>
                 <div>
-                  <span className="text-base sm:text-2xl lg:text-3xl font-extrabold text-slate-800 block leading-tight">
+                  <span className="text-base sm:text-xl lg:text-2xl font-extrabold text-slate-800 block leading-tight">
                     Na Hora
                   </span>
                   <span className="text-[11px] sm:text-xs text-slate-600 block mt-0.5">
-                    Preços no Site
+                    Veja o preço sem enrolação
                   </span>
                 </div>
               </div>
@@ -312,8 +307,9 @@ export default function Home() {
                   Simulador Rápido de Quantidade para Obra
                 </h3>
                 <p className="text-xs text-slate-600">
-                  Informe o comprimento e a largura/altura em metros para estimar o
-                  consumo (já considerando +5% de margem de recorte).
+                  Coloque o comprimento e a altura (ou largura) em metros para ter
+                  uma ideia de quantas peças vai precisar (já com uma folga para
+                  recortes).
                 </p>
               </div>
 
@@ -350,7 +346,7 @@ export default function Home() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
                   <div className="px-2">
                     <span className="text-[10px] text-slate-500 uppercase block font-semibold">
-                      Área Total
+                      ÁREA TOTAL
                     </span>
                     <span className="text-sm font-extrabold text-orange-600">
                       {areaCalculada.toFixed(1)} m²
@@ -358,7 +354,7 @@ export default function Home() {
                   </div>
                   <div className="px-2 border-l border-slate-200">
                     <span className="text-[10px] text-slate-500 uppercase block font-semibold">
-                      Blocos 39cm
+                      BLOCOS (ESTIMATIVA)
                     </span>
                     <span className="text-sm font-extrabold text-slate-800">
                       ~{blocosEstimados} un
@@ -366,10 +362,10 @@ export default function Home() {
                   </div>
                   <div className="px-2 border-t sm:border-t-0 sm:border-l border-slate-200 col-span-2 sm:col-span-1 pt-2 sm:pt-0">
                     <span className="text-[10px] text-slate-500 uppercase block font-semibold">
-                      Paver / Cerca
+                      PAVER / CALÇAMENTO
                     </span>
                     <span className="text-sm font-extrabold text-emerald-700">
-                      ~{paversEstimados} pçs | {mouraoEstimado} mourões
+                      ~{paversEstimados} pçs
                     </span>
                   </div>
                 </div>
@@ -469,8 +465,8 @@ export default function Home() {
               Por que Escolher a ConcreForte em Quedas do Iguaçu e Região?
             </h2>
             <p className="text-slate-600 text-xs sm:text-base">
-              Produção própria com rigoroso controle de resistência e logística ágil
-              para entregar na sua obra no prazo combinado.
+              Fabricação própria com material de primeira e entrega rápida no prazo
+              combinado.
             </p>
           </div>
 
@@ -483,8 +479,8 @@ export default function Home() {
                 Fabricação Própria
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Prensa vibro-hidráulica com dosagem precisa de agregados e cimento
-                de alta resistência inicial, garantindo peças padronizadas no esquadro.
+                Peças bem feitas, alinhadas e no esquadro para facilitar o trabalho
+                do pedreiro e render mais na obra.
               </p>
             </div>
 
@@ -493,11 +489,11 @@ export default function Home() {
                 <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-slate-800">
-                Entrega na Região c/ Munck
+                Entrega na Obra
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Atendemos Quedas do Iguaçu e toda a região com caminhão munck e
-                basculante para descarregar paletes de blocos, pavers e tubos na obra.
+                Atendemos Quedas do Iguaçu e região com caminhão munck e basculante,
+                descarregando o material onde você precisa.
               </p>
             </div>
 
@@ -506,11 +502,11 @@ export default function Home() {
                 <Award className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-slate-800">
-                Resistência Garantida (MPa)
+                Qualidade Garantida
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Artefatos produzidos seguindo as normas ABNT NBR 6136 (Blocos) e NBR
-                9781 (Pavers de 35 MPa e 50 MPa para tráfego leve ou pesado).
+                Blocos e pavers reforçados, feitos para durar anos e aguentar o
+                tranco no dia a dia, seja em casa ou no pátio.
               </p>
             </div>
 
@@ -522,8 +518,8 @@ export default function Home() {
                 Preço Direto de Fábrica
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Compre direto de quem fabrica, sem intermediários. Negociação rápida
-                para obras residenciais, comerciais, barracões e área rural.
+                Compre direto de quem fabrica, sem atravessador. Condições boas para
+                quem está construindo, reformando ou no sítio.
               </p>
             </div>
           </div>

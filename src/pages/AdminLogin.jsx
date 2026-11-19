@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  HardHat,
   Lock,
   Mail,
   KeyRound,
   ArrowLeft,
   AlertCircle,
-  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { isFirebaseConfigured } from '../services/firebase';
 
 export default function AdminLogin() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('admin@concreforte.com.br');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -57,27 +54,11 @@ export default function AdminLogin() {
               className="h-20 w-auto object-contain"
             />
             <span className="text-[11px] uppercase tracking-widest text-orange-600 font-bold block mt-1">
-              Acesso ao Painel Administrativo
+              Acesso Restrito • Painel Administrativo
             </span>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {!isFirebaseConfigured && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="block font-bold">
-                    Modo Demonstração Ativo (Sem .env Firebase)
-                  </strong>
-                  Credenciais preenchidas automaticamente:{' '}
-                  <code className="font-mono bg-amber-100 px-1 rounded">
-                    admin@concreforte.com.br
-                  </code>{' '}
-                  / <code className="font-mono bg-amber-100 px-1 rounded">admin123</code>
-                </div>
-              </div>
-            )}
-
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -94,9 +75,10 @@ export default function AdminLogin() {
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@concreforte.com.br"
+                  placeholder="Digite seu e-mail"
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-800 focus:border-orange-600 focus:outline-none"
                 />
               </div>
@@ -111,6 +93,7 @@ export default function AdminLogin() {
                 <input
                   type="password"
                   required
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"

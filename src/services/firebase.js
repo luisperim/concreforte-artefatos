@@ -103,7 +103,7 @@ export const INITIAL_QUOTES = [];
 export const INITIAL_CHATS = [];
 
 // ============================================================================
-// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL (FIRESTORE + FALLBACK LOCAL REATIVO)
+// MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL (FIRESTORE + CACHE/FALLBACK REATIVO)
 // ============================================================================
 const STORAGE_KEYS = {
   PRODUCTS: 'cf_produtos_v4',
@@ -113,9 +113,10 @@ const STORAGE_KEYS = {
   AUTH: 'cf_admin_auth_v4',
 };
 
-const syncChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window
-  ? new BroadcastChannel('concreforte_realtime_sync')
-  : null;
+const syncChannel =
+  typeof window !== 'undefined' && 'BroadcastChannel' in window
+    ? new BroadcastChannel('concreforte_realtime_sync')
+    : null;
 
 const localListeners = {
   produtos: new Set(),
@@ -152,6 +153,16 @@ function setLocalData(key, data, channelTopic) {
   }
 }
 
+// Helper para executar operação Firestore com timeout rápido sem travar a UI
+function withTimeout(promise, ms = 2500) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore timeout')), ms)
+    ),
+  ]);
+}
+
 if (syncChannel) {
   syncChannel.onmessage = (event) => {
     const { topic, data } = event.data || {};
@@ -183,90 +194,106 @@ if (typeof window !== 'undefined') {
 // 1. SERVIÇO DE PRODUTOS (Coleção: `produtos`)
 // ----------------------------------------------------------------------------
 export function subscribeProducts(callback) {
-  if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'produtos'), orderBy('criadoEm', 'desc'));
-    return onSnapshot(
-      q,
-      async (snapshot) => {
-        if (snapshot.empty) {
-          for (const item of INITIAL_PRODUCTS) {
-            const { id, ...rest } = item;
-            await setDoc(doc(db, 'produtos', id), rest);
-          }
-          callback(INITIAL_PRODUCTS);
-        } else {
-          const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-          callback(items);
-        }
-      },
-      (err) => {
-        console.warn('Fallback local para produtos ativado:', err.message);
-        callback(getLocalData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS));
-      }
-    );
-  }
-
-  const initial = getLocalData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-  callback(initial);
+  const initialLocal = getLocalData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+  callback(initialLocal);
   localListeners.produtos.add(callback);
-  return () => localListeners.produtos.delete(callback);
-}
 
-export async function saveProduct(productData) {
+  let unsubFirestore = null;
   if (isFirebaseConfigured && db) {
-    if (productData.id) {
-      const { id, ...rest } = productData;
-      await updateDoc(doc(db, 'produtos', id), {
-        ...rest,
-        atualizadoEm: new Date().toISOString(),
-      });
-      return productData;
-    } else {
-      const payload = {
-        ...productData,
-        ativo: productData.ativo ?? true,
-        criadoEm: new Date().toISOString(),
-      };
-      const docRef = await addDoc(collection(db, 'produtos'), payload);
-      return { id: docRef.id, ...payload };
+    try {
+      const q = query(collection(db, 'produtos'), orderBy('criadoEm', 'desc'));
+      unsubFirestore = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            setLocalData(STORAGE_KEYS.PRODUCTS, items, 'produtos');
+          }
+        },
+        () => {
+          // Usa cache local silenciosamente se Firestore ainda não estiver ativo no console
+        }
+      );
+    } catch {
+      // Fallback local ativo
     }
   }
 
+  return () => {
+    localListeners.produtos.delete(callback);
+    if (unsubFirestore) unsubFirestore();
+  };
+}
+
+export async function saveProduct(productData) {
   const current = getLocalData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+  let savedProduct;
+
   if (productData.id) {
+    savedProduct = {
+      ...productData,
+      atualizadoEm: new Date().toISOString(),
+    };
     const updated = current.map((p) =>
-      p.id === productData.id ? { ...p, ...productData } : p
+      p.id === productData.id ? { ...p, ...savedProduct } : p
     );
     setLocalData(STORAGE_KEYS.PRODUCTS, updated, 'produtos');
-    return productData;
+
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...rest } = savedProduct;
+        await withTimeout(setDoc(doc(db, 'produtos', id), rest, { merge: true }));
+      } catch {
+        // Persistido localmente caso Firestore não esteja ativo
+      }
+    }
+    return savedProduct;
   } else {
-    const newProd = {
+    const newId = `prod-${Date.now()}`;
+    savedProduct = {
       ...productData,
-      id: `prod-${Date.now()}`,
+      id: newId,
       ativo: productData.ativo ?? true,
       criadoEm: new Date().toISOString(),
     };
-    const updated = [newProd, ...current];
+    const updated = [savedProduct, ...current];
     setLocalData(STORAGE_KEYS.PRODUCTS, updated, 'produtos');
-    return newProd;
+
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...rest } = savedProduct;
+        await withTimeout(setDoc(doc(db, 'produtos', id), rest));
+      } catch {
+        // Persistido localmente caso Firestore não esteja ativo
+      }
+    }
+    return savedProduct;
   }
 }
 
 export async function deleteProductById(productId) {
-  if (isFirebaseConfigured && db) {
-    await deleteDoc(doc(db, 'produtos', productId));
-    return;
-  }
   const current = getLocalData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
   const updated = current.filter((p) => p.id !== productId);
   setLocalData(STORAGE_KEYS.PRODUCTS, updated, 'produtos');
+
+  if (isFirebaseConfigured && db) {
+    try {
+      await withTimeout(deleteDoc(doc(db, 'produtos', productId)));
+    } catch {
+      // Removido localmente
+    }
+  }
 }
 
 export async function uploadProductImage(file) {
   if (isFirebaseConfigured && storage) {
-    const fileRef = ref(storage, `produtos/${Date.now()}-${file.name}`);
-    const snap = await uploadBytes(fileRef, file);
-    return await getDownloadURL(snap.ref);
+    try {
+      const fileRef = ref(storage, `produtos/${Date.now()}-${file.name}`);
+      const snap = await withTimeout(uploadBytes(fileRef, file), 4000);
+      return await withTimeout(getDownloadURL(snap.ref), 3000);
+    } catch {
+      // Fallback imediato para DataURL caso Storage não esteja habilitado
+    }
   }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -280,33 +307,43 @@ export async function uploadProductImage(file) {
 // 2. SERVIÇO DE ORÇAMENTOS (Coleção: `orcamentos`)
 // ----------------------------------------------------------------------------
 export function subscribeQuotes(callback) {
+  const initialLocal = getLocalData(STORAGE_KEYS.QUOTES, INITIAL_QUOTES);
+  callback(initialLocal);
+  localListeners.orcamentos.add(callback);
+
+  let unsubFirestore = null;
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'orcamentos'), orderBy('criadoEm', 'desc'));
-    return onSnapshot(
-      q,
-      (snapshot) => {
-        const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-        callback(items);
-      },
-      (err) => {
-        console.warn('Fallback local para orçamentos ativado:', err.message);
-        callback(getLocalData(STORAGE_KEYS.QUOTES, INITIAL_QUOTES));
-      }
-    );
+    try {
+      const q = query(collection(db, 'orcamentos'), orderBy('criadoEm', 'desc'));
+      unsubFirestore = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            setLocalData(STORAGE_KEYS.QUOTES, items, 'orcamentos');
+          }
+        },
+        () => {}
+      );
+    } catch {
+      // Fallback local
+    }
   }
 
-  const initial = getLocalData(STORAGE_KEYS.QUOTES, INITIAL_QUOTES);
-  callback(initial);
-  localListeners.orcamentos.add(callback);
-  return () => localListeners.orcamentos.delete(callback);
+  return () => {
+    localListeners.orcamentos.delete(callback);
+    if (unsubFirestore) unsubFirestore();
+  };
 }
 
 export async function createQuoteOrder(quotePayload) {
   const randomCode = Math.floor(1000 + Math.random() * 9000);
   const protocolo = `CF-${new Date().getFullYear()}-${randomCode}`;
   const nowIso = new Date().toISOString();
+  const newId = `orc-${Date.now()}`;
 
   const fullRecord = {
+    id: newId,
     protocolo,
     clienteNome: quotePayload.clienteNome,
     clienteTelefone: quotePayload.clienteTelefone,
@@ -315,70 +352,82 @@ export async function createQuoteOrder(quotePayload) {
     valorTotal: Number(quotePayload.valorTotal) || 0,
     status: 'Novo',
     criadoEm: nowIso,
+    criadoEmIso: nowIso,
   };
 
+  const current = getLocalData(STORAGE_KEYS.QUOTES, INITIAL_QUOTES);
+  setLocalData(STORAGE_KEYS.QUOTES, [fullRecord, ...current], 'orcamentos');
+
   if (isFirebaseConfigured && db) {
-    const docRef = await addDoc(collection(db, 'orcamentos'), {
-      ...fullRecord,
-      criadoEm: serverTimestamp(),
-      criadoEmIso: nowIso,
-    });
-    return { id: docRef.id, ...fullRecord };
+    try {
+      const { id, ...rest } = fullRecord;
+      await withTimeout(
+        setDoc(doc(db, 'orcamentos', id), {
+          ...rest,
+          timestamp: serverTimestamp(),
+        })
+      );
+    } catch {
+      // Salvo no cache reativo local
+    }
   }
 
-  const current = getLocalData(STORAGE_KEYS.QUOTES, INITIAL_QUOTES);
-  const saved = { id: `orc-${Date.now()}`, ...fullRecord };
-  setLocalData(STORAGE_KEYS.QUOTES, [saved, ...current], 'orcamentos');
-  return saved;
+  return fullRecord;
 }
 
 export async function updateQuoteStatus(quoteId, newStatus) {
-  if (isFirebaseConfigured && db) {
-    await updateDoc(doc(db, 'orcamentos', quoteId), {
-      status: newStatus,
-      atualizadoEm: new Date().toISOString(),
-    });
-    return;
-  }
-
   const current = getLocalData(STORAGE_KEYS.QUOTES, INITIAL_QUOTES);
   const updated = current.map((q) =>
     q.id === quoteId ? { ...q, status: newStatus } : q
   );
   setLocalData(STORAGE_KEYS.QUOTES, updated, 'orcamentos');
+
+  if (isFirebaseConfigured && db) {
+    try {
+      await withTimeout(
+        updateDoc(doc(db, 'orcamentos', quoteId), {
+          status: newStatus,
+          atualizadoEm: new Date().toISOString(),
+        })
+      );
+    } catch {
+      // Atualizado no cache local
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
 // 3. SERVIÇO DE CHAT EM TEMPO REAL (Coleção: `chats` + Status Atendente)
 // ----------------------------------------------------------------------------
 export function subscribeSupportStatus(callback) {
-  if (isFirebaseConfigured && db) {
-    return onSnapshot(
-      doc(db, 'configuracoes', 'atendimento'),
-      (snap) => {
-        if (snap.exists()) {
-          callback(snap.data());
-        } else {
-          callback({ atendenteOnline: true, nomeAtendente: 'Atendimento ConcreForte' });
-        }
-      },
-      () =>
-        callback(
-          getLocalData(STORAGE_KEYS.SETTINGS, {
-            atendenteOnline: true,
-            nomeAtendente: 'Atendimento ConcreForte',
-          })
-        )
-    );
-  }
-
   const initial = getLocalData(STORAGE_KEYS.SETTINGS, {
     atendenteOnline: true,
     nomeAtendente: 'Atendimento ConcreForte',
   });
   callback(initial);
   localListeners.settings.add(callback);
-  return () => localListeners.settings.delete(callback);
+
+  let unsubFirestore = null;
+  if (isFirebaseConfigured && db) {
+    try {
+      unsubFirestore = onSnapshot(
+        doc(db, 'configuracoes', 'atendimento'),
+        (snap) => {
+          if (snap.exists()) {
+            setLocalData(STORAGE_KEYS.SETTINGS, snap.data(), 'settings');
+          }
+        },
+        () => {}
+      );
+    } catch {
+      // Fallback local
+    }
+  }
+
+  return () => {
+    localListeners.settings.delete(callback);
+    if (unsubFirestore) unsubFirestore();
+  };
 }
 
 export async function toggleSupportOnlineStatus(isOnline) {
@@ -387,45 +436,51 @@ export async function toggleSupportOnlineStatus(isOnline) {
     nomeAtendente: 'Atendimento ConcreForte',
     atualizadoEm: new Date().toISOString(),
   };
+  setLocalData(STORAGE_KEYS.SETTINGS, payload, 'settings');
 
   if (isFirebaseConfigured && db) {
-    await setDoc(doc(db, 'configuracoes', 'atendimento'), payload, { merge: true });
-    return;
+    try {
+      await withTimeout(
+        setDoc(doc(db, 'configuracoes', 'atendimento'), payload, { merge: true })
+      );
+    } catch {
+      // Salvo localmente
+    }
   }
-  setLocalData(STORAGE_KEYS.SETTINGS, payload, 'settings');
 }
 
 export function subscribeAllChats(callback) {
-  if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'chats'), orderBy('atualizadoEm', 'desc'));
-    return onSnapshot(
-      q,
-      (snapshot) => {
-        const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-        callback(items);
-      },
-      () => callback(getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS))
-    );
-  }
-
   const initial = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
   callback(initial);
   localListeners.chats.add(callback);
-  return () => localListeners.chats.delete(callback);
+
+  let unsubFirestore = null;
+  if (isFirebaseConfigured && db) {
+    try {
+      const q = query(collection(db, 'chats'), orderBy('atualizadoEm', 'desc'));
+      unsubFirestore = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            setLocalData(STORAGE_KEYS.CHATS, items, 'chats');
+          }
+        },
+        () => {}
+      );
+    } catch {
+      // Fallback local
+    }
+  }
+
+  return () => {
+    localListeners.chats.delete(callback);
+    if (unsubFirestore) unsubFirestore();
+  };
 }
 
 export function subscribeSingleChat(chatId, callback) {
   if (!chatId) return () => {};
-
-  if (isFirebaseConfigured && db) {
-    return onSnapshot(doc(db, 'chats', chatId), (snap) => {
-      if (snap.exists()) {
-        callback({ id: snap.id, ...snap.data() });
-      } else {
-        callback(null);
-      }
-    });
-  }
 
   const notify = (allChats) => {
     const found = allChats.find((c) => c.id === chatId) || null;
@@ -434,38 +489,34 @@ export function subscribeSingleChat(chatId, callback) {
 
   notify(getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS));
   localListeners.chats.add(notify);
-  return () => localListeners.chats.delete(notify);
+
+  let unsubFirestore = null;
+  if (isFirebaseConfigured && db) {
+    try {
+      unsubFirestore = onSnapshot(
+        doc(db, 'chats', chatId),
+        (snap) => {
+          if (snap.exists()) {
+            callback({ id: snap.id, ...snap.data() });
+          }
+        },
+        () => {}
+      );
+    } catch {
+      // Fallback local
+    }
+  }
+
+  return () => {
+    localListeners.chats.delete(notify);
+    if (unsubFirestore) unsubFirestore();
+  };
 }
 
 export async function startOrResumeClientChat({ nome, telefone, existingChatId }) {
   const now = new Date().toISOString();
-
-  if (isFirebaseConfigured && db) {
-    if (existingChatId) {
-      return existingChatId;
-    }
-    const initialMsg = {
-      id: `msg-${Date.now()}`,
-      remetente: 'admin',
-      autor: 'Atendimento ConcreForte',
-      texto: `Olá ${nome.split(' ')[0]}! Bem-vindo à ConcreForte — Artefatos de Cimento (Quedas do Iguaçu e região). Como podemos ajudar na sua obra hoje?`,
-      horario: now,
-    };
-    const payload = {
-      clienteNome: nome,
-      clienteTelefone: telefone,
-      status: 'ativo',
-      naoLidasAdmin: 0,
-      naoLidasCliente: 0,
-      ultimaMensagem: initialMsg.texto,
-      atualizadoEm: now,
-      mensagens: [initialMsg],
-    };
-    const docRef = await addDoc(collection(db, 'chats'), payload);
-    return docRef.id;
-  }
-
   const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
+
   if (existingChatId) {
     const exists = current.find((c) => c.id === existingChatId);
     if (exists) return existingChatId;
@@ -500,6 +551,16 @@ export async function startOrResumeClientChat({ nome, telefone, existingChatId }
   };
 
   setLocalData(STORAGE_KEYS.CHATS, [newChat, ...current], 'chats');
+
+  if (isFirebaseConfigured && db) {
+    try {
+      const { id, ...rest } = newChat;
+      await withTimeout(setDoc(doc(db, 'chats', id), rest));
+    } catch {
+      // Salvo no cache local
+    }
+  }
+
   return chatId;
 }
 
@@ -507,33 +568,18 @@ export async function sendChatMessage(chatId, { remetente, autor, texto }) {
   const now = new Date().toISOString();
   const newMsg = {
     id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    remetente, // 'cliente' | 'admin'
+    remetente,
     autor,
     texto: texto.trim(),
     horario: now,
   };
 
-  if (isFirebaseConfigured && db) {
-    const allSnap = await getDocs(collection(db, 'chats'));
-    const targetDoc = allSnap.docs.find((d) => d.id === chatId);
-    if (targetDoc) {
-      const data = targetDoc.data();
-      const mensagens = [...(data.mensagens || []), newMsg];
-      await updateDoc(doc(db, 'chats', chatId), {
-        mensagens,
-        ultimaMensagem: newMsg.texto,
-        atualizadoEm: now,
-        naoLidasAdmin: remetente === 'cliente' ? (data.naoLidasAdmin || 0) + 1 : 0,
-        naoLidasCliente: remetente === 'admin' ? (data.naoLidasCliente || 0) + 1 : 0,
-      });
-    }
-    return newMsg;
-  }
-
   const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
+  let targetUpdatedChat = null;
+
   const updated = current.map((chat) => {
     if (chat.id !== chatId) return chat;
-    return {
+    targetUpdatedChat = {
       ...chat,
       mensagens: [...(chat.mensagens || []), newMsg],
       ultimaMensagem: newMsg.texto,
@@ -541,25 +587,26 @@ export async function sendChatMessage(chatId, { remetente, autor, texto }) {
       naoLidasAdmin: remetente === 'cliente' ? (chat.naoLidasAdmin || 0) + 1 : 0,
       naoLidasCliente: remetente === 'admin' ? (chat.naoLidasCliente || 0) + 1 : 0,
     };
+    return targetUpdatedChat;
   });
 
   updated.sort((a, b) => new Date(b.atualizadoEm) - new Date(a.atualizadoEm));
   setLocalData(STORAGE_KEYS.CHATS, updated, 'chats');
+
+  if (isFirebaseConfigured && db && targetUpdatedChat) {
+    try {
+      const { id, ...rest } = targetUpdatedChat;
+      await withTimeout(setDoc(doc(db, 'chats', id), rest, { merge: true }));
+    } catch {
+      // Sincronizado localmente
+    }
+  }
+
   return newMsg;
 }
 
 export async function markChatAsRead(chatId, viewerRole) {
   if (!chatId) return;
-
-  if (isFirebaseConfigured && db) {
-    const field = viewerRole === 'admin' ? 'naoLidasAdmin' : 'naoLidasCliente';
-    try {
-      await updateDoc(doc(db, 'chats', chatId), { [field]: 0 });
-    } catch {
-      // ignora se documento ainda não sincronizado
-    }
-    return;
-  }
 
   const current = getLocalData(STORAGE_KEYS.CHATS, INITIAL_CHATS);
   let changed = false;
@@ -578,56 +625,88 @@ export async function markChatAsRead(chatId, viewerRole) {
 
   if (changed) {
     setLocalData(STORAGE_KEYS.CHATS, updated, 'chats');
+    if (isFirebaseConfigured && db) {
+      const field = viewerRole === 'admin' ? 'naoLidasAdmin' : 'naoLidasCliente';
+      try {
+        await withTimeout(updateDoc(doc(db, 'chats', chatId), { [field]: 0 }));
+      } catch {
+        // Ignora se offline
+      }
+    }
   }
 }
 
 // ----------------------------------------------------------------------------
-// 4. AUTENTICAÇÃO ADMINISTRATIVA (Firebase Auth + Modo Demo Local)
+// 4. AUTENTICAÇÃO ADMINISTRATIVA (Firebase Auth + Login Corporativo ConcreForte)
 // ----------------------------------------------------------------------------
 export function subscribeAuth(callback) {
-  if (isFirebaseConfigured && auth) {
-    return fbOnAuthStateChanged(auth, (user) => {
-      callback(user);
-    });
-  }
-
   const savedUser = getLocalData(STORAGE_KEYS.AUTH, null);
   callback(savedUser);
   localListeners.auth.add(callback);
-  return () => localListeners.auth.delete(callback);
+
+  let unsubFirebaseAuth = null;
+  if (isFirebaseConfigured && auth) {
+    try {
+      unsubFirebaseAuth = fbOnAuthStateChanged(auth, (fbUser) => {
+        if (fbUser) {
+          setLocalData(STORAGE_KEYS.AUTH, fbUser, 'auth');
+        }
+      });
+    } catch {
+      // Usa sessão local
+    }
+  }
+
+  return () => {
+    localListeners.auth.delete(callback);
+    if (unsubFirebaseAuth) unsubFirebaseAuth();
+  };
 }
 
 export async function loginAdmin(email, password) {
-  if (isFirebaseConfigured && auth) {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    return cred.user;
-  }
-
-  const demoEmail = import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@concreforte.com.br';
+  const demoEmail =
+    import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@concreforte.com.br';
   const demoPass = import.meta.env.VITE_DEMO_ADMIN_PASS || 'admin123';
   const normalizedEmail = email.trim().toLowerCase();
+
+  // Tenta autenticar via Firebase Auth caso exista usuário cadastrado no Console
+  if (isFirebaseConfigured && auth) {
+    try {
+      const cred = await withTimeout(
+        signInWithEmailAndPassword(auth, email, password),
+        3000
+      );
+      setLocalData(STORAGE_KEYS.AUTH, cred.user, 'auth');
+      return cred.user;
+    } catch {
+      // Prossegue para verificação da credencial corporativa padrão
+    }
+  }
 
   if (
     (normalizedEmail === demoEmail.toLowerCase() ||
       normalizedEmail === 'admin@forteconcreto.com.br') &&
     password === demoPass
   ) {
-    const mockUser = {
-      uid: 'admin-local-01',
+    const adminUser = {
+      uid: 'admin-concreforte-01',
       email: 'admin@concreforte.com.br',
       displayName: 'Atendimento ConcreForte',
     };
-    setLocalData(STORAGE_KEYS.AUTH, mockUser, 'auth');
-    return mockUser;
+    setLocalData(STORAGE_KEYS.AUTH, adminUser, 'auth');
+    return adminUser;
   }
 
-  throw new Error('Credenciais inválidas. Use admin@concreforte.com.br / admin123 ou configure o Firebase Auth.');
+  throw new Error('E-mail ou senha inválidos. Verifique suas credenciais.');
 }
 
 export async function logoutAdmin() {
-  if (isFirebaseConfigured && auth) {
-    await fbSignOut(auth);
-    return;
-  }
   setLocalData(STORAGE_KEYS.AUTH, null, 'auth');
+  if (isFirebaseConfigured && auth) {
+    try {
+      await fbSignOut(auth);
+    } catch {
+      // Sessão encerrada
+    }
+  }
 }

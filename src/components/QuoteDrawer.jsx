@@ -257,7 +257,7 @@ export default function QuoteDrawer() {
                     Seu orçamento está vazio
                   </h3>
                   <p className="text-sm text-slate-600">
-                    Adicione blocos, pavers, manilhas, mourões ou lajes do catálogo
+                    Adicione blocos, pavers, manilhas, palanques ou lajes do catálogo
                     para solicitar seu orçamento na hora.
                   </p>
                 </div>

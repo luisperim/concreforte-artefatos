@@ -107,7 +107,7 @@ export default function Home() {
               </h1>
 
               <p className="text-slate-600 text-sm sm:text-base lg:text-lg max-w-3xl leading-relaxed">
-                Blocos, pavers (calçamento), manilhas, mourões e lajes com preço
+                Blocos, pavers (calçamento), manilhas, palanques e lajes com preço
                 justo e qualidade de verdade. Entregamos rápido em Quedas do Iguaçu
                 e toda a região direto na sua obra.
               </p>
@@ -655,7 +655,7 @@ export default function Home() {
                   Entrega Urbana e Rural
                 </span>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Levamos mourões para cercas, manilhas para açudes/estradas e
+                  Levamos palanques para cercas, manilhas para açudes/estradas e
                   blocos/pavers direto na sua propriedade.
                 </p>
               </div>

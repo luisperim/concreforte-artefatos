@@ -82,7 +82,7 @@ export const PRODUCT_CATEGORIES = [
   'Blocos e Tijolos',
   'Paver e Pisos',
   'Manilhas e Tubos',
-  'Mourões e Estacas',
+  'Palanques e Estacas',
   'Lajes e Pré-moldados',
   'Acabamentos',
 ];
